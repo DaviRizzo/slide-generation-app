@@ -1,0 +1,16 @@
+1. Tech Stack:
+- Next.js
+- React
+- Tailwind CSS
+- Typescript
+- Shadcn UI (for UI components)
+- Clerk (for authentication)
+- Supabase (database)
+- Next JS API Router (for routing)
+- Open AI API (for text generation)
+- Google Slides API and Google Drive API (for template management)
+2. Project Description: a slide generation app with the key flow
+- Input Prompt: The user specifies the content they want for the slides.
+- Template Selection: The user selects a preferred style for the slides.
+- Content Structuring: The user defines the sequence and themes for each slide through a visual interface.
+- Slide Preview & Download: The user previews the completed slides (with AI generated text substuting the placeholders), upload the images on the image placeholders and downloads the final presentation.
