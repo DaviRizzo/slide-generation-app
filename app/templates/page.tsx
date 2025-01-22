@@ -1,10 +1,22 @@
+"use client"
+
 import { Layout } from "@/components/layout"
 import { TemplatePreview } from "@/components/template-preview"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 
 export default function TemplatesPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const prompt = searchParams.get("prompt")
+
+  const handleTemplateSelect = (template: any) => {
+    // Redireciona para o editor com o prompt e o template selecionado
+    router.push(`/editor?prompt=${encodeURIComponent(prompt || "")}&template=${JSON.stringify(template)}`)
+  }
+
   const categories = [
     {
       title: "Mais Populares",
@@ -39,8 +51,8 @@ export default function TemplatesPage() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <Button variant="ghost" size="sm" asChild>
+        <div className="flex items-center justify-between mb-8">
+          <Button variant="outline" size="sm" asChild>
             <Link href="/" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               Voltar
@@ -48,22 +60,23 @@ export default function TemplatesPage() {
           </Button>
         </div>
 
-        <h1 className="text-3xl font-bold text-center mb-12">Escolha o estilo da sua apresentação</h1>
+        <h2 className="text-3xl font-bold mb-8">Escolha um template</h2>
 
-        <div className="space-y-12">
-          {categories.map((category) => (
-            <div key={category.title}>
-              <h2 className="text-2xl font-semibold mb-6">{category.title}</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {category.templates.map((template) => (
-                  <TemplatePreview key={template.id} template={template} />
-                ))}
-              </div>
+        {categories.map((category) => (
+          <div key={category.title} className="mb-12">
+            <h3 className="text-xl font-semibold mb-4">{category.title}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {category.templates.map((template) => (
+                <TemplatePreview
+                  key={template.id}
+                  template={template}
+                  onSelect={handleTemplateSelect}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </Layout>
   )
 }
-

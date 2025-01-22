@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight, X } from "lucide-react"
 import Image from "next/image"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 
 interface TemplatePreviewProps {
   template: {
@@ -14,12 +13,12 @@ interface TemplatePreviewProps {
     image: string
     title: string
   }
+  onSelect: (template: any) => void
 }
 
-export function TemplatePreview({ template }: TemplatePreviewProps) {
+export function TemplatePreview({ template, onSelect }: TemplatePreviewProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
-  const router = useRouter()
 
   const slides = Array.from({ length: 5 }, (_, i) => ({
     id: i,
@@ -28,7 +27,7 @@ export function TemplatePreview({ template }: TemplatePreviewProps) {
 
   const handleUseTemplate = () => {
     setIsOpen(false)
-    router.push("/editor")
+    onSelect(template)
   }
 
   return (
@@ -104,4 +103,3 @@ export function TemplatePreview({ template }: TemplatePreviewProps) {
     </Dialog>
   )
 }
-

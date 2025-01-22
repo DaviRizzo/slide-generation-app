@@ -1,5 +1,6 @@
 "use client"
 
+import { useAuth } from "@clerk/nextjs";
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { SlideCard } from "@/components/slide-card"
@@ -26,6 +27,16 @@ interface Slide {
 }
 
 export default function EditorPage() {
+  const { isLoaded, userId } = useAuth();
+  
+  if (!isLoaded) {
+    return <div>Carregando...</div>;
+  }
+
+  if (!userId) {
+    return <div>Você precisa estar logado para acessar esta página.</div>;
+  }
+
   const router = useRouter()
   const [slides, setSlides] = useState<Slide[]>(
     Array.from({ length: 8 }, (_, i) => ({
@@ -113,4 +124,3 @@ export default function EditorPage() {
     </Layout>
   )
 }
-
