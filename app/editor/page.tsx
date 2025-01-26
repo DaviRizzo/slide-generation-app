@@ -5,8 +5,8 @@ import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { SlideCard } from "@/components/slide-card"
 import { Zap, ArrowLeft } from "lucide-react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
   DndContext,
@@ -26,26 +26,78 @@ interface Slide {
   theme: string
 }
 
+interface TemplateSlide {
+  id: string
+  title: string
+  thumbnail: string
+  pageElements: any[]
+}
+
 export default function EditorPage() {
   const { isLoaded, userId } = useAuth();
-  
-  if (!isLoaded) {
-    return <div>Carregando...</div>;
-  }
-
-  if (!userId) {
-    return <div>Você precisa estar logado para acessar esta página.</div>;
-  }
-
   const router = useRouter()
-  const [slides, setSlides] = useState<Slide[]>(
-    Array.from({ length: 8 }, (_, i) => ({
-      id: i + 1,
-      image: "/placeholder.svg",
-      isActive: true,
-      theme: "",
-    })),
-  )
+  const searchParams = useSearchParams()
+  const [slides, setSlides] = useState<Slide[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+    const fetchTemplateSlides = async () => {
+      try {
+        const templateParam = searchParams.get("template")
+        if (!templateParam) {
+          if (isMounted) {
+            setSlides(Array.from({ length: 8 }, (_, i) => ({
+              id: i + 1,
+              image: "/placeholder.svg",
+              isActive: true,
+              theme: "",
+            })))
+            setIsLoading(false)
+          }
+          return
+        }
+
+        const template = JSON.parse(decodeURIComponent(templateParam))
+        const response = await fetch(`/api/templates/${template.id}`)
+        
+        if (!response.ok) {
+          throw new Error('Falha ao carregar os slides do template')
+        }
+
+        const data = await response.json()
+        
+        if (isMounted) {
+          setSlides(data.slides.map((slide: TemplateSlide, index: number) => ({
+            id: index + 1,
+            image: slide.thumbnail || "/placeholder.svg",
+            isActive: true,
+            theme: "",
+          })))
+        }
+      } catch (error) {
+        console.error('Erro ao carregar template:', error)
+        if (isMounted) {
+          setSlides(Array.from({ length: 8 }, (_, i) => ({
+            id: i + 1,
+            image: "/placeholder.svg",
+            isActive: true,
+            theme: "",
+          })))
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    fetchTemplateSlides()
+
+    return () => {
+      isMounted = false
+    }
+  }, [searchParams])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -77,6 +129,18 @@ export default function EditorPage() {
 
   const updateSlideTheme = (id: number, theme: string) => {
     setSlides((prev) => prev.map((slide) => (slide.id === id ? { ...slide, theme } : slide)))
+  }
+
+  if (!isLoaded) {
+    return <div>Carregando...</div>;
+  }
+
+  if (!userId) {
+    return <div>Você precisa estar logado para acessar esta página.</div>;
+  }
+
+  if (isLoading) {
+    return <div>Carregando template...</div>;
   }
 
   return (

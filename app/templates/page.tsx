@@ -1,52 +1,29 @@
 "use client"
 
 import { Layout } from "@/components/layout"
-import { TemplatePreview } from "@/components/template-preview"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
+import { PresentationGrid } from "@/components/presentation-grid"
+import { DriveFile } from "@/types/google"
 
 export default function TemplatesPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const prompt = searchParams.get("prompt")
 
-  const handleTemplateSelect = (template: any) => {
-    // Redireciona para o editor com o prompt e o template selecionado
-    router.push(`/editor?prompt=${encodeURIComponent(prompt || "")}&template=${JSON.stringify(template)}`)
+  const handleTemplateSelect = (template: DriveFile) => {
+    const url = `/editor?prompt=${encodeURIComponent(prompt || "")}&template=${encodeURIComponent(
+      JSON.stringify({
+        id: template.id,
+        title: template.name,
+        thumbnailLink: template.thumbnailLink,
+        webViewLink: template.webViewLink,
+      })
+    )}`
+    router.replace(url)
   }
-
-  const categories = [
-    {
-      title: "Mais Populares",
-      templates: [
-        {
-          id: 1,
-          image: "/placeholder.svg",
-          title: "Hospital Resident",
-        },
-        { id: 2, image: "/placeholder.svg", title: "Content Creation" },
-        { id: 3, image: "/placeholder.svg", title: "Tech Startup" },
-      ],
-    },
-    {
-      title: "Educação",
-      templates: [
-        { id: 4, image: "/placeholder.svg", title: "Scale & Surface Area" },
-        { id: 5, image: "/placeholder.svg", title: "Unit Rates" },
-        { id: 6, image: "/placeholder.svg", title: "Genetics" },
-      ],
-    },
-    {
-      title: "Corporativo",
-      templates: [
-        { id: 7, image: "/placeholder.svg", title: "Business Plan" },
-        { id: 8, image: "/placeholder.svg", title: "Marketing Strategy" },
-        { id: 9, image: "/placeholder.svg", title: "Annual Report" },
-      ],
-    },
-  ]
 
   return (
     <Layout>
@@ -60,22 +37,34 @@ export default function TemplatesPage() {
           </Button>
         </div>
 
-        <h2 className="text-3xl font-bold mb-8">Escolha um template</h2>
+        <h2 className="text-3xl font-bold mb-8 text-center">Escolha um template</h2>
 
-        {categories.map((category) => (
-          <div key={category.title} className="mb-12">
-            <h3 className="text-xl font-semibold mb-4">{category.title}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {category.templates.map((template) => (
-                <TemplatePreview
-                  key={template.id}
-                  template={template}
-                  onSelect={handleTemplateSelect}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
+        <div className="mb-12">
+          <h3 className="text-xl font-semibold mb-4">Mais Populares</h3>
+          <PresentationGrid 
+            onSelect={handleTemplateSelect} 
+            showCreateNew={false} 
+            category="Mais Populares"
+          />
+        </div>
+
+        <div className="mb-12">
+          <h3 className="text-xl font-semibold mb-4">Corporativo</h3>
+          <PresentationGrid 
+            onSelect={handleTemplateSelect} 
+            showCreateNew={false}
+            category="Corporativo"
+          />
+        </div>
+
+        <div className="mb-12">
+          <h3 className="text-xl font-semibold mb-4">Educação</h3>
+          <PresentationGrid 
+            onSelect={handleTemplateSelect} 
+            showCreateNew={false}
+            category="Educação"
+          />
+        </div>
       </div>
     </Layout>
   )

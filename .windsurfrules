@@ -5,7 +5,7 @@
 - Typescript
 - Shadcn UI (for UI components)
 - Clerk (for authentication)
-- Supabase (database)
+- Supabase (database and file storage)
 - Next JS API Router (for routing)
 - Open AI API (for text generation)
 - Google Slides API and Google Drive API (for template management)

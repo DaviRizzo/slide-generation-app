@@ -39,7 +39,7 @@ export function SlideCard({ id, image, isActive, onToggleActive, theme, onThemeC
         <Checkbox
           checked={isActive}
           onCheckedChange={onToggleActive}
-          className="bg-white data-[state=checked]:bg-green-500 border-2"
+          className="bg-white data-[state=checked]:bg-black border-2"
         />
       </div>
       <Image

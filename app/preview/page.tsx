@@ -129,14 +129,21 @@ export default function PreviewPage() {
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto" ref={fullscreenRef} onMouseMove={isFullscreen ? handleMouseMove : undefined}>
-          <Card className="relative aspect-[16/8] mb-4 flex-1">
+        <div
+          className={`max-w-3xl mx-auto ${isFullscreen ? "fixed inset-0 flex items-center justify-center bg-black" : ""}`}
+          ref={fullscreenRef}
+          onMouseMove={isFullscreen ? handleMouseMove : undefined}
+        >
+          <Card className={`relative ${isFullscreen ? 'w-screen h-screen flex items-center justify-center bg-black' : 'aspect-[16/8] mb-4 flex-1'}`}>
+           <div className={`relative ${isFullscreen ? 'w-full h-full flex items-center justify-center' : ''}`}>
             <Image
-              src={slides[currentSlide].image || "/placeholder.svg"}
-              alt={`Slide ${currentSlide + 1}`}
-              fill
-              className="object-cover rounded-lg"
+             src={slides[currentSlide].image || "/placeholder.svg"}
+             alt={`Slide ${currentSlide + 1}`}
+             fill
+             className={`object-contain ${!isFullscreen ? 'object-cover rounded-lg' : ''}`}
+             priority
             />
+           </div>
             {!isFullscreen && (
               <>
                 <button
