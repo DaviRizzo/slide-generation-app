@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/
 import { Card } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight, X } from "lucide-react"
 import Image from "next/image"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { DriveFile } from "@/types/google"
 import { Skeleton } from "@/components/ui/skeleton"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
@@ -15,11 +15,23 @@ interface TemplatePreviewProps {
   onSelect: (template: DriveFile) => void
 }
 
+interface PageElement {
+  objectId: string;
+  title?: string;
+  description?: string;
+  shape?: {
+    placeholder?: {
+      type: string;
+      index: number;
+    };
+  };
+}
+
 interface Slide {
   id: string
   title: string
   thumbnail: string
-  pageElements: any[]
+  pageElements: PageElement[]
 }
 
 interface PresentationDetails {
@@ -31,41 +43,41 @@ interface PresentationDetails {
 export function TemplatePreview({ template, onSelect }: TemplatePreviewProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
-  const [presentation, setPresentation] = useState<PresentationDetails | null>(null)
+  const [presentationDetails, setPresentationDetails] = useState<PresentationDetails | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (isOpen && template.id) {
-      fetchPresentationDetails()
-    }
-  }, [isOpen, template.id])
-
-  const fetchPresentationDetails = async () => {
+  const fetchPresentationDetails = useCallback(async () => {
+    if (!isOpen || !template.id) return;
+    
     try {
       setIsLoading(true)
       setError(null)
+
       const response = await fetch(`/api/templates/${template.id}`)
-      
       if (!response.ok) {
-        throw new Error('Falha ao carregar os slides do template')
+        throw new Error('Falha ao carregar detalhes do template')
       }
 
       const data = await response.json()
-      setPresentation(data)
+      setPresentationDetails(data)
       setCurrentSlide(0)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar slides')
-      console.error('Erro ao buscar detalhes da apresentação:', err)
+      setError(err instanceof Error ? err.message : 'Erro ao carregar detalhes')
+      console.error('Erro ao buscar detalhes do template:', err)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [template.id, isOpen])
+
+  useEffect(() => {
+    fetchPresentationDetails()
+  }, [fetchPresentationDetails])
 
   const handleNext = () => {
-    if (presentation?.slides) {
+    if (presentationDetails?.slides) {
       setCurrentSlide((prev) => 
-        prev < presentation.slides.length - 1 ? prev + 1 : prev
+        prev < presentationDetails.slides.length - 1 ? prev + 1 : prev
       )
     }
   }
@@ -114,12 +126,12 @@ export function TemplatePreview({ template, onSelect }: TemplatePreviewProps) {
               <div className="w-full h-full flex items-center justify-center text-red-500">
                 {error}
               </div>
-            ) : presentation?.slides?.length ? (
+            ) : presentationDetails?.slides?.length ? (
               <>
                 <div className="relative h-[calc(100%-120px)] flex items-center justify-center px-16 mt-4">
                   <div className="relative w-full h-full">
                     <Image
-                      src={presentation.slides[currentSlide].thumbnail || "/placeholder.svg"}
+                      src={presentationDetails.slides[currentSlide].thumbnail || "/placeholder.svg"}
                       alt={`Slide ${currentSlide + 1}`}
                       fill
                       className="object-contain"
@@ -133,7 +145,7 @@ export function TemplatePreview({ template, onSelect }: TemplatePreviewProps) {
                 <div className="absolute bottom-0 left-0 right-0 h-[120px] px-4 pt-5">
                   <div className="w-full h-full overflow-x-auto overflow-y-hidden">
                     <div className="flex gap-2 py-4 w-max mx-auto">
-                      {presentation.slides.map((slide, index) => (
+                      {presentationDetails.slides.map((slide, index) => (
                         <button
                           key={slide.id}
                           onClick={() => setCurrentSlide(index)}
@@ -170,8 +182,8 @@ export function TemplatePreview({ template, onSelect }: TemplatePreviewProps) {
                 <button
                   onClick={handleNext}
                   disabled={
-                    !presentation?.slides || 
-                    currentSlide === presentation.slides.length - 1 || 
+                    !presentationDetails?.slides || 
+                    currentSlide === presentationDetails.slides.length - 1 || 
                     isLoading
                   }
                   className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -198,7 +210,7 @@ export function TemplatePreview({ template, onSelect }: TemplatePreviewProps) {
               <div>
                 <h3 className="text-lg font-semibold mb-1">{removeCategory(template.name)}</h3>
                 <p className="text-sm text-gray-500">
-                  {presentation?.slides?.length || 0} slides
+                  {presentationDetails?.slides?.length || 0} slides
                 </p>
               </div>
               <Button onClick={handleUseTemplate} size="lg">

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Plus } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
 import { DriveFile, TemplatesResponse } from "@/types/google"
 import { Skeleton } from "@/components/ui/skeleton"

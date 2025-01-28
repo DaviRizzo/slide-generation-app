@@ -3,6 +3,13 @@
 import { useAuth } from "@clerk/nextjs";
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { PageElement, TemplateSlide } from "@/lib/types"
+import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
+import { Loader2 } from "@/components/ui/loader2"
 import { SlideCard } from "@/components/slide-card"
 import { Zap, ArrowLeft } from "lucide-react"
 import { useState, useEffect } from "react"
@@ -15,7 +22,6 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragOverlay,
 } from "@dnd-kit/core"
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from "@dnd-kit/sortable"
 
@@ -26,11 +32,28 @@ interface Slide {
   theme: string
 }
 
+interface PageElement {
+  objectId: string;
+  title?: string;
+  description?: string;
+  shape?: {
+    placeholder?: {
+      type: string;
+      index: number;
+    };
+  };
+}
+
 interface TemplateSlide {
   id: string
   title: string
   thumbnail: string
-  pageElements: any[]
+  pageElements: PageElement[]
+}
+
+interface DragEndEvent {
+  active: { id: number };
+  over?: { id: number };
 }
 
 export default function EditorPage() {
@@ -39,6 +62,8 @@ export default function EditorPage() {
   const searchParams = useSearchParams()
   const [slides, setSlides] = useState<Slide[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast()
 
   useEffect(() => {
     let isMounted = true
@@ -110,7 +135,7 @@ export default function EditorPage() {
     }),
   )
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
 
     if (active.id !== over?.id) {
@@ -130,6 +155,87 @@ export default function EditorPage() {
   const updateSlideTheme = (id: number, theme: string) => {
     setSlides((prev) => prev.map((slide) => (slide.id === id ? { ...slide, theme } : slide)))
   }
+
+  const handleGeneratePresentation = async () => {
+    try {
+      setIsGenerating(true);
+
+      const templateId = searchParams.get("template");
+      if (!templateId) {
+        toast({
+          title: "Erro ao gerar apresentação",
+          description: "Template não encontrado.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Parse o template para obter o ID
+      const template = JSON.parse(decodeURIComponent(templateId));
+
+      // Filtra apenas os slides ativos e mantém a ordem atual
+      const activeSlides = slides
+        .filter(item => item.isActive)
+        .map(item => item.id); // Mantemos o número do slide (1-based)
+
+      if (activeSlides.length === 0) {
+        toast({
+          title: "Erro ao gerar apresentação",
+          description: "Selecione pelo menos um slide para gerar a apresentação.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Enviando requisição com:', {
+        templateId: template.id,
+        activeSlides,
+      });
+
+      // Faz a requisição para a API
+      const response = await fetch('/api/presentations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          templateId: template.id,
+          activeSlides,
+          metadata: {
+            originalTemplate: templateId,
+            generatedAt: new Date().toISOString(),
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao gerar apresentação');
+      }
+
+      // Mostra mensagem de sucesso
+      toast({
+        title: "Apresentação gerada com sucesso!",
+        description: "Você será redirecionado para visualizar sua apresentação.",
+      });
+
+      // Redireciona para o Google Slides após 2 segundos
+      setTimeout(() => {
+        window.open(data.presentation.webViewLink, '_blank');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Erro ao gerar apresentação:', error);
+      toast({
+        title: "Erro ao gerar apresentação",
+        description: error instanceof Error ? error.message : "Ocorreu um erro inesperado",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   if (!isLoaded) {
     return <div>Carregando...</div>;
@@ -162,7 +268,20 @@ export default function EditorPage() {
 
           <h1 className="text-2xl font-bold text-center flex-1">Defina os temas e ordem de cada Slide</h1>
 
-          <Button onClick={() => router.push("/preview")}>Gerar Apresentação</Button>
+          <Button
+            onClick={handleGeneratePresentation}
+            disabled={isGenerating}
+            className="w-[200px]"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Gerando...
+              </>
+            ) : (
+              "Gerar Apresentação"
+            )}
+          </Button>
         </div>
 
         <div className="overflow-hidden">
@@ -185,6 +304,7 @@ export default function EditorPage() {
           </DndContext>
         </div>
       </div>
+      <Toaster />
     </Layout>
   )
 }

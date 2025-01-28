@@ -1,14 +1,13 @@
-import { cn } from "@/lib/utils"
+import { ReactNode } from "react"
 
 interface LayoutProps {
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export function Layout({ children }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-white">
-      <main>{children}</main>
+    <div className="min-h-screen bg-background">
+      {children}
     </div>
   )
 }
-

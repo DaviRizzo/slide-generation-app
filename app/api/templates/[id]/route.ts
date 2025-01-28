@@ -1,14 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { googleAPIClient } from '@/lib/google/client';
 
+interface GoogleSlide {
+  objectId: string;
+  slideProperties?: {
+    notesPage?: {
+      notesProperties?: {
+        speakerNotesObjectId?: string;
+      };
+    };
+  };
+  pageElements?: GooglePageElement[];
+}
+
+interface GooglePageElement {
+  objectId: string;
+  title?: string;
+  description?: string;
+  shape?: {
+    placeholder?: {
+      type: string;
+      index: number;
+    };
+  };
+}
+
+interface GooglePresentation {
+  slides?: GoogleSlide[];
+}
+
 export async function GET(
   request: NextRequest,
   context: { params: { id: string } }
-): Promise<NextResponse> {
+) {
   try {
-    const params = await context.params;
-    const presentationId = params.id;
-    
+    // Usando context.params em vez de params diretamente
+    const presentationId = context.params.id;
+
     if (!presentationId) {
       return NextResponse.json(
         { error: 'ID da apresentação não fornecido' },
@@ -17,7 +45,7 @@ export async function GET(
     }
 
     // Busca a apresentação
-    const presentation = await googleAPIClient.getPresentation(presentationId);
+    const presentation = await googleAPIClient.getPresentation(presentationId) as GooglePresentation;
 
     if (!presentation) {
       return NextResponse.json(
@@ -28,7 +56,7 @@ export async function GET(
 
     // Busca as imagens dos slides
     const thumbnails = await Promise.all(
-      (presentation.slides || []).map(async (slide: any, index: number) => {
+      (presentation.slides || []).map(async (slide: GoogleSlide) => {
         try {
           const response = await googleAPIClient.slides.presentations.pages.getThumbnail({
             presentationId,
@@ -43,33 +71,22 @@ export async function GET(
     );
 
     // Extrai informações relevantes dos slides
-    const slides = presentation.slides?.map((slide: any, index: number) => ({
+    const slides = presentation.slides?.map((slide: GoogleSlide, i: number) => ({
       id: slide.objectId,
       title: slide.slideProperties?.notesPage?.notesProperties?.speakerNotesObjectId || '',
-      thumbnail: thumbnails[index] || '',
+      thumbnail: thumbnails[i] || '',
       pageElements: slide.pageElements || [],
     }));
 
     return NextResponse.json({
       id: presentationId,
-      title: presentation.title || '',
-      slides: slides || [],
-    }, {
-      status: 200,
-      headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=59',
-      },
+      slides,
     });
-
   } catch (error) {
-    console.error('Erro ao buscar slides do template:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    
-    return NextResponse.json({
-      error: 'Falha ao buscar slides do template',
-      details: errorMessage,
-    }, {
-      status: 500
-    });
+    console.error('Erro ao buscar detalhes da apresentação:', error);
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 }
+    );
   }
 }

@@ -85,7 +85,7 @@ export async function GET(): Promise<NextResponse<APIResponse | { error: string,
     console.error('Erro ao buscar templates do Google Drive:', error);
     
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao buscar templates';
-    const errorCode = error instanceof Error && 'code' in error ? (error as any).code : 'UNKNOWN_ERROR';
+    const errorCode = error instanceof Error && 'code' in error ? (error as { code: string }).code : 'UNKNOWN_ERROR';
     
     // Retorna resposta de erro
     return NextResponse.json({
