@@ -63,6 +63,7 @@ export default function EditorPage() {
   const [slides, setSlides] = useState<Slide[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingThemes, setIsGeneratingThemes] = useState(false);
   const { toast } = useToast()
 
   useEffect(() => {
@@ -235,6 +236,91 @@ export default function EditorPage() {
     }
   };
 
+  const handleGenerateThemes = async () => {
+    try {
+      setIsGeneratingThemes(true);
+      const selectedSlides = slides
+        .filter(slide => slide.isActive)
+        .map(slide => slide.id);
+
+      if (selectedSlides.length === 0) {
+        toast({
+          title: "Erro ao gerar temas",
+          description: "Selecione pelo menos um slide para gerar temas.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const prompt = searchParams.get("prompt");
+      if (!prompt) {
+        toast({
+          title: "Erro ao gerar temas",
+          description: "Prompt não encontrado.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Mostra toast de carregamento
+      toast({
+        title: "Gerando temas...",
+        description: "Aguarde enquanto a IA gera os temas para os slides selecionados.",
+      });
+
+      const response = await fetch('/api/themes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          selectedSlides,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao gerar temas');
+      }
+
+      if (!data.themes || !Array.isArray(data.themes)) {
+        throw new Error('Formato de resposta inválido');
+      }
+
+      // Atualiza os temas dos slides selecionados
+      let themeIndex = 0;
+      const activeSlides = slides.filter(slide => slide.isActive).length;
+      
+      if (data.themes.length < activeSlides) {
+        throw new Error('Número insuficiente de temas gerados');
+      }
+
+      setSlides(prev => prev.map(slide => {
+        if (slide.isActive && themeIndex < data.themes.length) {
+          return { ...slide, theme: data.themes[themeIndex++] };
+        }
+        return slide;
+      }));
+
+      toast({
+        title: "Temas gerados com sucesso!",
+        description: "Os temas foram aplicados aos slides selecionados.",
+      });
+
+    } catch (error) {
+      console.error('Erro ao gerar temas:', error);
+      toast({
+        title: "Erro ao gerar temas",
+        description: error instanceof Error ? error.message : "Ocorreu um erro inesperado",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingThemes(false);
+    }
+  };
+
   if (!isLoaded) {
     return <div>Carregando...</div>;
   }
@@ -258,9 +344,23 @@ export default function EditorPage() {
                 Voltar
               </Link>
             </Button>
-            <Button variant="outline" className="gap-2">
-              <Zap className="w-4 h-4" />
-              Gerar temas com AI
+            <Button 
+              variant="outline" 
+              className="gap-2" 
+              onClick={handleGenerateThemes}
+              disabled={isGeneratingThemes}
+            >
+              {isGeneratingThemes ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Gerando...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4" />
+                  Gerar temas com AI
+                </>
+              )}
             </Button>
           </div>
 
