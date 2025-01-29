@@ -7,25 +7,83 @@ import { ChevronLeft, ChevronRight, Home, Maximize2, X } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useState, useRef, useCallback, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 
 const platforms = [
-  { name: "Google Slides", icon: "/placeholder.svg", color: "bg-yellow-500" },
-  { name: "Canva", icon: "/placeholder.svg", color: "bg-cyan-500" },
-  { name: "PowerPoint", icon: "/placeholder.svg", color: "bg-red-500" },
-  { name: "Download", icon: "/placeholder.svg", color: "bg-black" },
+  { 
+    name: "Google Slides", 
+    icon: "/logos/google_slides.svg", 
+    color: "transparent" 
+  },
+  { 
+    name: "Canva", 
+    icon: "/logos/canva.svg", 
+    color: "transparent" 
+  },
+  { 
+    name: "PowerPoint", 
+    icon: "/logos/powerpoint.svg", 
+    color: "transparent" 
+  },
+  { 
+    name: "Download", 
+    icon: "/placeholder.svg", 
+    color: "bg-black" 
+  },
 ]
 
 export default function PreviewPage() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showExitButton, setShowExitButton] = useState(false)
+  const [slides, setSlides] = useState<{ id: number; image: string; contentUrl: string }[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [presentationId, setPresentationId] = useState<string | null>(null)
   const fullscreenRef = useRef<HTMLDivElement>(null)
   const timeoutRef = useRef<NodeJS.Timeout>()
+  const searchParams = useSearchParams()
 
-  const slides = Array.from({ length: 8 }, (_, i) => ({
-    id: i,
-    image: "/placeholder.svg",
-  }))
+  useEffect(() => {
+    const fetchPresentation = async () => {
+      try {
+        setError(null)
+        setIsLoading(true)
+        
+        const id = searchParams.get('presentationId')
+        if (!id) {
+          setError('ID da apresentação não fornecido')
+          return
+        }
+
+        setPresentationId(id)
+
+        const response = await fetch(`/api/presentations/${id}`)
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.error || 'Falha ao carregar a apresentação')
+        }
+
+        const data = await response.json()
+        if (!data.slides || !Array.isArray(data.slides)) {
+          throw new Error('Formato de dados inválido')
+        }
+
+        setSlides(data.slides.map((slide: any) => ({
+          id: slide.id,
+          image: slide.thumbnail,
+          contentUrl: slide.contentUrl
+        })))
+      } catch (error) {
+        console.error('Erro ao carregar apresentação:', error)
+        setError(error instanceof Error ? error.message : 'Erro ao carregar apresentação')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchPresentation()
+  }, [searchParams])
 
   const handleFullscreen = useCallback(async () => {
     if (!document.fullscreenElement) {
@@ -98,18 +156,24 @@ export default function PreviewPage() {
             <span className="text-lg">Abra com:</span>
             <div className="flex gap-2">
               {platforms.map((platform) => (
-                <button
+                <Button
                   key={platform.name}
-                  className={`w-12 h-12 rounded-full ${platform.color} flex items-center justify-center`}
+                  onClick={() => {
+                    if (platform.name === "Google Slides" && presentationId) {
+                      window.open(`https://docs.google.com/presentation/d/${presentationId}/edit`, '_blank')
+                    }
+                  }}
+                  className={`w-12 h-12 p-0 rounded-full ${platform.color} flex items-center justify-center hover:opacity-90 transition-opacity`}
+                  variant="ghost"
                 >
                   <Image
-                    src={platform.icon || "/placeholder.svg"}
+                    src={platform.icon}
                     alt={platform.name}
-                    width={24}
-                    height={24}
-                    className="w-6 h-6"
+                    width={48}
+                    height={48}
+                    className="w-10 h-10 object-contain"
                   />
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -129,52 +193,69 @@ export default function PreviewPage() {
           </div>
         </div>
 
-        <div
-          className={`max-w-3xl mx-auto ${isFullscreen ? "fixed inset-0 flex items-center justify-center bg-black" : ""}`}
-          ref={fullscreenRef}
-          onMouseMove={isFullscreen ? handleMouseMove : undefined}
-        >
-          <Card className={`relative ${isFullscreen ? 'w-screen h-screen flex items-center justify-center bg-black' : 'aspect-[16/8] mb-4 flex-1'}`}>
-           <div className={`relative ${isFullscreen ? 'w-full h-full flex items-center justify-center' : ''}`}>
-            <Image
-             src={slides[currentSlide].image || "/placeholder.svg"}
-             alt={`Slide ${currentSlide + 1}`}
-             fill
-             className={`object-contain ${!isFullscreen ? 'object-cover rounded-lg' : ''}`}
-             priority
-            />
-           </div>
-            {!isFullscreen && (
-              <>
+        <div className="flex-1 flex flex-col min-h-0">
+          <div
+            className={`flex-1 ${isFullscreen ? "fixed inset-0 flex items-center justify-center bg-black" : "h-[calc(100%-7rem)]"}`}
+            ref={fullscreenRef}
+            onMouseMove={isFullscreen ? handleMouseMove : undefined}
+          >
+            <Card className={`relative h-full w-auto ${isFullscreen ? 'w-screen h-screen flex items-center justify-center bg-black' : ''}`}>
+              <div className={`relative w-full h-full flex items-center justify-center`}>
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p>Carregando...</p>
+                  </div>
+                ) : error ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p>{error}</p>
+                  </div>
+                ) : slides.length > 0 ? (
+                  <Image
+                    src={slides[currentSlide]?.contentUrl || "/placeholder.svg"}
+                    alt={`Slide ${currentSlide + 1}`}
+                    fill
+                    sizes={isFullscreen ? "100vw" : "(max-width: 768px) 100vw, 768px"}
+                    className={`object-contain ${!isFullscreen ? 'rounded-lg' : ''}`}
+                    priority
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p>Nenhum slide disponível</p>
+                  </div>
+                )}
+              </div>
+              {!isFullscreen && (
+                <>
+                  <button
+                    onClick={() => navigateSlide("prev")}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-sm rounded-full p-2"
+                    disabled={currentSlide === 0}
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button
+                    onClick={() => navigateSlide("next")}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-sm rounded-full p-2"
+                    disabled={currentSlide === slides.length - 1}
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </>
+              )}
+              {isFullscreen && showExitButton && (
                 <button
-                  onClick={() => navigateSlide("prev")}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-sm rounded-full p-2"
-                  disabled={currentSlide === 0}
+                  onClick={handleFullscreen}
+                  className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm rounded-full p-2 transition-opacity"
                 >
-                  <ChevronLeft className="w-6 h-6" />
+                  <X className="w-6 h-6" />
                 </button>
-                <button
-                  onClick={() => navigateSlide("next")}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur-sm rounded-full p-2"
-                  disabled={currentSlide === slides.length - 1}
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-              </>
-            )}
-            {isFullscreen && showExitButton && (
-              <button
-                onClick={handleFullscreen}
-                className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm rounded-full p-2 transition-opacity"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            )}
-          </Card>
+              )}
+            </Card>
+          </div>
 
           {!isFullscreen && (
-            <div className="relative h-24">
-              <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+            <div className="h-24 mt-2">
+              <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide justify-center">
                 {slides.map((slide, index) => (
                   <button
                     key={slide.id}
@@ -200,4 +281,3 @@ export default function PreviewPage() {
     </Layout>
   )
 }
-

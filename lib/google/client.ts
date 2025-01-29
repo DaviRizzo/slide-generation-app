@@ -148,6 +148,31 @@ class GoogleAPIClient {
     }
   }
 
+  // Método para obter thumbnails de todos os slides de uma apresentação
+  public async getPresentationThumbnails(presentationId: string) {
+    try {
+      const presentation = await this.getPresentation(presentationId);
+      if (!presentation.slides || presentation.slides.length === 0) {
+        return [];
+      }
+
+      const thumbnailPromises = presentation.slides.map(async (slide) => {
+        const response = await this.slidesClient.presentations.pages.getThumbnail({
+          presentationId,
+          pageObjectId: slide.objectId!,
+        });
+        return {
+          thumbnailUrl: response.data.contentUrl,
+        };
+      });
+
+      return await Promise.all(thumbnailPromises);
+    } catch (error) {
+      console.error('Erro ao obter thumbnails:', error);
+      throw error;
+    }
+  }
+
   // Copia uma apresentação e reordena/remove slides conforme especificado
   public async copyPresentation(templateId: string, activeSlideIndexes: number[]) {
     try {

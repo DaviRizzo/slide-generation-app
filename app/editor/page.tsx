@@ -220,10 +220,8 @@ export default function EditorPage() {
         description: "Você será redirecionado para visualizar sua apresentação.",
       });
 
-      // Redireciona para o Google Slides após 2 segundos
-      setTimeout(() => {
-        window.open(data.presentation.webViewLink, '_blank');
-      }, 2000);
+      // Redireciona para a página de preview com o ID da apresentação
+      router.push(`/preview?presentationId=${data.presentation.id}`);
 
     } catch (error) {
       console.error('Erro ao gerar apresentação:', error);

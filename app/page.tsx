@@ -51,7 +51,6 @@ export default function HomePage() {
         </div>
 
         <h2 className="text-4xl font-bold text-center mb-8">Como posso ajudar?</h2>
-
         <form onSubmit={handlePromptSubmit} className="max-w-3xl mx-auto mb-12">
           <div className="flex gap-2">
             <Input
