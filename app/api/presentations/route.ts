@@ -7,6 +7,8 @@ interface CreatePresentationRequest {
   templateId: string;
   activeSlides: number[];
   metadata?: Record<string, unknown>;
+  prompt?: string;
+  slideThemes?: Record<string, string>;
 }
 
 interface Template {
@@ -22,7 +24,7 @@ export async function POST(request: NextRequest) {
     
     // Obter dados do corpo da requisição
     const body: CreatePresentationRequest = await request.json();
-    let { templateId, activeSlides, metadata } = body;
+    let { templateId, activeSlides, metadata, prompt, slideThemes } = body;
 
     // Se templateId for um objeto stringificado, extrair o ID
     try {
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
       console.log('[POST /api/presentations] templateId não é um objeto JSON, usando como ID direto');
     }
 
-    console.log('[POST /api/presentations] Dados processados:', JSON.stringify({ templateId, activeSlides, metadata }, null, 2));
+    console.log('[POST /api/presentations] Dados processados:', JSON.stringify({ templateId, activeSlides, metadata, prompt, slideThemes }, null, 2));
 
     if (!templateId) {
       console.error('[POST /api/presentations] ID do template inválido:', { templateId });
@@ -58,11 +60,26 @@ export async function POST(request: NextRequest) {
 
     console.log('[POST /api/presentations] Apresentação criada:', newPresentation);
 
+    // Se houver prompt e temas, gerar e substituir texto nos slides
+    if (prompt && slideThemes) {
+      console.log('[POST /api/presentations] Gerando texto para os slides...');
+      await googleAPIClient.replaceTextPlaceholders(
+        newPresentation.presentationId,
+        prompt,
+        slideThemes
+      );
+      console.log('[POST /api/presentations] Texto gerado e substituído com sucesso');
+    }
+
     const presentationData = {
       google_slides_id: newPresentation.presentationId,
       template_id: templateId,
       slides_order: activeSlides,
-      metadata: metadata || {},
+      metadata: {
+        ...metadata || {},
+        prompt,
+        slideThemes
+      },
       web_view_link: newPresentation.webViewLink
     };
 

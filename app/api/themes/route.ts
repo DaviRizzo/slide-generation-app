@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         { role: "system", content: systemPrompt },
         { role: "user", content: "Gere os temas para os slides." }
       ],
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       response_format: { type: "json_object" },
     });
 

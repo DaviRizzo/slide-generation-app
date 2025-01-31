@@ -174,6 +174,16 @@ export default function EditorPage() {
       // Parse o template para obter o ID
       const template = JSON.parse(decodeURIComponent(templateId));
 
+      const prompt = searchParams.get("prompt");
+      if (!prompt) {
+        toast({
+          title: "Erro ao gerar apresentação",
+          description: "Prompt não encontrado.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Filtra apenas os slides ativos e mantém a ordem atual
       const activeSlides = slides
         .filter(item => item.isActive)
@@ -188,9 +198,19 @@ export default function EditorPage() {
         return;
       }
 
+      // Cria um objeto com os temas dos slides ativos
+      const slideThemes = slides
+        .filter(item => item.isActive)
+        .reduce((acc, item, index) => ({
+          ...acc,
+          [index.toString()]: item.theme
+        }), {});
+
       console.log('Enviando requisição com:', {
         templateId: template.id,
         activeSlides,
+        prompt,
+        slideThemes
       });
 
       // Faz a requisição para a API
@@ -202,6 +222,8 @@ export default function EditorPage() {
         body: JSON.stringify({
           templateId: template.id,
           activeSlides,
+          prompt,
+          slideThemes,
           metadata: {
             originalTemplate: templateId,
             generatedAt: new Date().toISOString(),

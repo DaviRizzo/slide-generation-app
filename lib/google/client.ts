@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
+import { generateSlideContent } from '../openai/client';
 
 // Interface para as credenciais da conta de serviço
 interface ServiceAccountCredentials {
@@ -259,6 +260,172 @@ class GoogleAPIClient {
       console.error('Erro ao copiar apresentação:', error);
       throw error;
     }
+  }
+
+  // Método auxiliar para extrair o estilo do texto
+  private getElementStyle(element: any): any {
+    if (element.shape?.text?.textElements) {
+      // Pega o estilo do primeiro textRun que tiver
+      const textRun = element.shape.text.textElements.find((te: any) => te.textRun);
+      if (textRun?.textRun?.style) {
+        return {
+          ...textRun.textRun.style,
+          // Remover campos que não queremos copiar
+          content: undefined,
+          textIndex: undefined
+        };
+      }
+    }
+    return null;
+  }
+
+  // Método para substituir placeholders de texto em uma apresentação
+  public async replaceTextPlaceholders(presentationId: string, prompt: string, slideThemes: Record<string, string>) {
+    try {
+      console.log('[replaceTextPlaceholders] Iniciando substituição de texto com:', {
+        presentationId,
+        prompt,
+        slideThemes
+      });
+
+      // 1. Obter a apresentação
+      const presentation = await this.getPresentation(presentationId);
+      const slides = presentation.slides || [];
+      
+      console.log(`[replaceTextPlaceholders] Apresentação obtida com ${slides.length} slides`);
+
+      // 2. Para cada slide, processar seus placeholders de texto
+      for (let slideIndex = 0; slideIndex < slides.length; slideIndex++) {
+        const slide = slides[slideIndex];
+        const slideTheme = slideThemes[slideIndex.toString()] || '';
+        
+        console.log(`[replaceTextPlaceholders] Processando slide ${slideIndex} com tema: ${slideTheme}`);
+        
+        if (!slide.pageElements) {
+          console.log(`[replaceTextPlaceholders] Slide ${slideIndex} não tem elementos`);
+          continue;
+        }
+
+        // Identificar placeholders de texto no slide
+        const textPlaceholders = slide.pageElements
+          .filter(element => {
+            const isTextPlaceholder = 
+              // Verifica se é um placeholder de texto tradicional
+              (element.shape?.placeholder?.type === 'BODY' || 
+               element.shape?.placeholder?.type === 'TITLE') ||
+              // Verifica se é uma caixa de texto
+              (element.shape?.shapeType === 'TEXT_BOX') ||
+              // Verifica se tem propriedades de texto
+              element.shape?.text?.textElements?.some(textElement => 
+                textElement.textRun?.content?.trim()
+              );
+
+            console.log(`[replaceTextPlaceholders] Elemento ${element.objectId}: é placeholder? ${isTextPlaceholder}`, {
+              shapeType: element.shape?.shapeType,
+              placeholderType: element.shape?.placeholder?.type,
+              hasText: element.shape?.text?.textElements?.length > 0
+            });
+
+            return isTextPlaceholder;
+          })
+          .map(element => {
+            const currentContent = this.getElementText(element) || '';
+            const style = this.getElementStyle(element);
+            console.log(`[replaceTextPlaceholders] Placeholder ${element.objectId}:`, {
+              currentContent,
+              style
+            });
+            return {
+              objectId: element.objectId!,
+              currentContent,
+              maxLength: currentContent?.length || 1000,
+              style
+            };
+          });
+
+        console.log(`[replaceTextPlaceholders] Encontrados ${textPlaceholders.length} placeholders no slide ${slideIndex}`);
+
+        if (textPlaceholders.length === 0) continue;
+
+        // Gerar conteúdo para os placeholders do slide
+        console.log('[replaceTextPlaceholders] Gerando conteúdo com OpenAI...');
+        const generatedContent = await generateSlideContent(
+          prompt,
+          slideTheme,
+          textPlaceholders
+        );
+        console.log('[replaceTextPlaceholders] Conteúdo gerado:', generatedContent);
+
+        // Criar requests para atualizar o texto de cada placeholder
+        const requests = textPlaceholders.map(placeholder => {
+          const text = generatedContent[placeholder.objectId];
+          if (!text) return null;
+
+          const requests = [];
+
+          // Primeiro, limpar o texto existente
+          requests.push({
+            deleteText: {
+              objectId: placeholder.objectId,
+              textRange: {
+                type: 'ALL'
+              }
+            }
+          });
+
+          // Depois, inserir o novo texto
+          requests.push({
+            insertText: {
+              objectId: placeholder.objectId,
+              text,
+              insertionIndex: 0
+            }
+          });
+
+          // Se houver estilo, aplicá-lo ao texto
+          if (placeholder.style) {
+            requests.push({
+              updateTextStyle: {
+                objectId: placeholder.objectId,
+                style: placeholder.style,
+                textRange: {
+                  type: 'ALL'
+                },
+                fields: '*'
+              }
+            });
+          }
+
+          return requests;
+        }).filter(Boolean).flat();
+
+        // Aplicar as alterações
+        if (requests.length > 0) {
+          console.log(`[replaceTextPlaceholders] Aplicando ${requests.length} alterações no slide ${slideIndex}`);
+          await this.slidesClient.presentations.batchUpdate({
+            presentationId,
+            requestBody: {
+              requests
+            }
+          });
+          console.log(`[replaceTextPlaceholders] Alterações aplicadas no slide ${slideIndex}`);
+        }
+      }
+    } catch (error) {
+      console.error('[replaceTextPlaceholders] Erro ao substituir placeholders:', error);
+      throw error;
+    }
+  }
+
+  // Método auxiliar para extrair texto de um elemento
+  private getElementText(element: any): string | null {
+    if (element.shape?.text?.textElements) {
+      return element.shape.text.textElements
+        .map((textElement: any) => textElement.textRun?.content || '')
+        .join('')
+        .trim();
+    }
+    return null;
   }
 
   // Getter para o cliente do Drive
