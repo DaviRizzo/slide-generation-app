@@ -13,22 +13,26 @@ const platforms = [
   { 
     name: "Google Slides", 
     icon: "/logos/google_slides.svg", 
-    color: "transparent" 
+    color: "transparent",
+    action: (id: string) => window.open(`https://docs.google.com/presentation/d/${id}/edit`, '_blank')
   },
   { 
     name: "Canva", 
     icon: "/logos/canva.svg", 
-    color: "transparent" 
+    color: "transparent",
+    action: () => {} // Implementação futura
   },
   { 
     name: "PowerPoint", 
     icon: "/logos/powerpoint.svg", 
-    color: "transparent" 
+    color: "transparent",
+    action: (id: string) => window.open(`https://docs.google.com/presentation/d/${id}/export/pptx`, '_blank')
   },
   { 
     name: "Download", 
     icon: "/placeholder.svg", 
-    color: "bg-black" 
+    color: "bg-black",
+    action: () => {} // Implementação futura
   },
 ]
 
@@ -159,8 +163,8 @@ export default function PreviewPage() {
                 <Button
                   key={platform.name}
                   onClick={() => {
-                    if (platform.name === "Google Slides" && presentationId) {
-                      window.open(`https://docs.google.com/presentation/d/${presentationId}/edit`, '_blank')
+                    if (presentationId && platform.action) {
+                      platform.action(presentationId)
                     }
                   }}
                   className={`w-12 h-12 p-0 rounded-full ${platform.color} flex items-center justify-center hover:opacity-90 transition-opacity`}

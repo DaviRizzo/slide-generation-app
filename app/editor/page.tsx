@@ -18,12 +18,11 @@ import Link from "next/link"
 import {
   DndContext,
   closestCenter,
-  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core"
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from "@dnd-kit/sortable"
+import { arrayMove, SortableContext, rectSortingStrategy } from "@dnd-kit/sortable"
 
 interface Slide {
   id: number
@@ -130,10 +129,7 @@ export default function EditorPage() {
       activationConstraint: {
         distance: 8,
       },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    })
   )
 
   const handleDragEnd = (event: DragEndEvent) => {

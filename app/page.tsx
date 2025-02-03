@@ -38,7 +38,7 @@ export default function HomePage() {
     <Layout>
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         {/* Alinhar botão de apresentação e ícone do usuário */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center">
           <Button variant="outline" size="sm" asChild>
             <Link href="/presentations" className="flex items-center gap-2">
               <Presentation className="h-4 w-4" />
@@ -50,43 +50,46 @@ export default function HomePage() {
           </div>
         </div>
 
-        <h2 className="text-4xl font-bold text-center mb-8">Como posso ajudar?</h2>
-        <form onSubmit={handlePromptSubmit} className="max-w-3xl mx-auto mb-12">
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              placeholder="Digite o tema da sua apresentação..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-            />
-            <Button type="submit">
-              Gerar Slides
+        <div className="h-[calc(100vh-160px)] flex flex-col items-center justify-center">
+          <h2 className="text-4xl font-bold text-center mb-8">Como posso ajudar?</h2>
+          
+          <form onSubmit={handlePromptSubmit} className="w-full max-w-2xl mb-12">
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Digite o tema da sua apresentação..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="h-12 pl-4 pr-24 text-lg"
+              />
+              <Button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2">
+                Gerar Slides
+              </Button>
+            </div>
+          </form>
+
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button variant="outline" className="h-auto py-3 px-6">
+              <GraduationCap className="mr-2 h-5 w-5" />
+              Faculdade
+            </Button>
+            <Button variant="outline" className="h-auto py-3 px-6">
+              <Users className="mr-2 h-5 w-5" />
+              Reunião
+            </Button>
+            <Button variant="outline" className="h-auto py-3 px-6">
+              <Presentation className="mr-2 h-5 w-5" />
+              Palestras
+            </Button>
+            <Button variant="outline" className="h-auto py-3 px-6">
+              <FileText className="mr-2 h-5 w-5" />
+              Propostas
+            </Button>
+            <Button variant="outline" className="h-auto py-3 px-6">
+              <BarChart className="mr-2 h-5 w-5" />
+              Planejamentos
             </Button>
           </div>
-        </form>
-
-        {/* Botões de categorias */}
-        <div className="flex flex-wrap justify-center gap-4">
-          <Button variant="outline" className="h-auto py-3 px-6">
-            <GraduationCap className="mr-2 h-5 w-5" />
-            Faculdade
-          </Button>
-          <Button variant="outline" className="h-auto py-3 px-6">
-            <Users className="mr-2 h-5 w-5" />
-            Reunião
-          </Button>
-          <Button variant="outline" className="h-auto py-3 px-6">
-            <Presentation className="mr-2 h-5 w-5" />
-            Palestras
-          </Button>
-          <Button variant="outline" className="h-auto py-3 px-6">
-            <FileText className="mr-2 h-5 w-5" />
-            Propostas
-          </Button>
-          <Button variant="outline" className="h-auto py-3 px-6">
-            <BarChart className="mr-2 h-5 w-5" />
-            Planejamentos
-          </Button>
         </div>
 
         {/* Modal de autenticação */}
