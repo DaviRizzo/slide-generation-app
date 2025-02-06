@@ -17,6 +17,52 @@ interface ServiceAccountCredentials {
   universe_domain: string;
 }
 
+// Interfaces para elementos do Google Slides
+interface TextStyle {
+  foregroundColor?: {
+    opaqueColor?: {
+      rgbColor?: {
+        red?: number;
+        green?: number;
+        blue?: number;
+      };
+    };
+  };
+  bold?: boolean;
+  italic?: boolean;
+  fontSize?: {
+    magnitude?: number;
+    unit?: string;
+  };
+  fontFamily?: string;
+}
+
+interface TextRun {
+  content?: string;
+  style?: TextStyle;
+}
+
+interface TextElement {
+  textRun?: TextRun;
+}
+
+interface ShapeText {
+  textElements?: TextElement[];
+}
+
+interface Shape {
+  text?: ShapeText;
+  placeholder?: {
+    type?: string;
+  };
+  shapeType?: string;
+}
+
+interface PageElement {
+  objectId?: string;
+  shape?: Shape;
+}
+
 // Classe para gerenciar a autenticação e os clientes do Google
 class GoogleAPIClient {
   private static instance: GoogleAPIClient;
@@ -263,10 +309,10 @@ class GoogleAPIClient {
   }
 
   // Método auxiliar para extrair o estilo do texto
-  private getElementStyle(element: any): any {
+  private getElementStyle(element: PageElement): TextStyle | null {
     if (element.shape?.text?.textElements) {
       // Pega o estilo do primeiro textRun que tiver
-      const textRun = element.shape.text.textElements.find((te: any) => te.textRun);
+      const textRun = element.shape.text.textElements.find((te: TextElement) => te.textRun);
       if (textRun?.textRun?.style) {
         return {
           ...textRun.textRun.style,
@@ -418,10 +464,10 @@ class GoogleAPIClient {
   }
 
   // Método auxiliar para extrair texto de um elemento
-  private getElementText(element: any): string | null {
+  private getElementText(element: PageElement): string | null {
     if (element.shape?.text?.textElements) {
       return element.shape.text.textElements
-        .map((textElement: any) => textElement.textRun?.content || '')
+        .map((textElement: TextElement) => textElement.textRun?.content || '')
         .join('')
         .trim();
     }
