@@ -24,13 +24,14 @@ export async function POST(request: NextRequest) {
     
     // Obter dados do corpo da requisição
     const body: CreatePresentationRequest = await request.json();
-    let { templateId, activeSlides, metadata, prompt, slideThemes } = body;
+    const { activeSlides, metadata, prompt, slideThemes } = body;
+    let { templateId } = body;
 
     // Se templateId for um objeto stringificado, extrair o ID
     try {
       const template = JSON.parse(templateId) as Template;
       templateId = template.id;
-    } catch (e) {
+    } catch {
       // Se não for um JSON válido, assume que é o ID direto
       console.log('[POST /api/presentations] templateId não é um objeto JSON, usando como ID direto');
     }
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar conexão com Supabase
     try {
-      const { data: testData, error: testError } = await supabase
+      const { error: testError } = await supabase
         .from('presentations')
         .select('count')
         .limit(1);

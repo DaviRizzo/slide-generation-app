@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { googleAPIClient } from '@/lib/google/client';
 
+interface GoogleSlideThumbnail {
+  thumbnailUrl: string | null | undefined;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -43,11 +47,14 @@ export async function GET(
 
     return NextResponse.json({
       presentation,
-      slides: slides.map((slide: any, index: number) => ({
-        id: index,
-        thumbnail: slide.thumbnailUrl,
-        contentUrl: slide.thumbnailUrl // Usando o mesmo URL para ambos os campos por enquanto
-      })),
+      slides: slides
+        .filter((slide): slide is GoogleSlideThumbnail & { thumbnailUrl: string } => 
+          typeof slide.thumbnailUrl === 'string' && slide.thumbnailUrl !== '')
+        .map((slide, index) => ({
+          id: index,
+          thumbnail: slide.thumbnailUrl,
+          contentUrl: slide.thumbnailUrl
+        })),
     });
   } catch (error) {
     console.error('Erro ao buscar apresentação:', error);

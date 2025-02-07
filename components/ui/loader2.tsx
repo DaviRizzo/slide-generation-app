@@ -1,9 +1,7 @@
 import { Loader2 as LoaderIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface LoaderProps extends React.HTMLAttributes<HTMLDivElement> {}
-
-export function Loader2({ className, ...props }: LoaderProps) {
+export function Loader2({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn("animate-spin", className)}

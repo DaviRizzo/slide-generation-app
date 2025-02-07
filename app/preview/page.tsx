@@ -9,6 +9,18 @@ import Link from "next/link"
 import { useState, useRef, useCallback, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 
+interface APISlide {
+  id: number;
+  thumbnail: string;
+  contentUrl: string;
+}
+
+interface PreviewSlide {
+  id: number;
+  image: string;
+  contentUrl: string;
+}
+
 const platforms = [
   { 
     name: "Google Slides", 
@@ -40,7 +52,7 @@ export default function PreviewPage() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showExitButton, setShowExitButton] = useState(false)
-  const [slides, setSlides] = useState<{ id: number; image: string; contentUrl: string }[]>([])
+  const [slides, setSlides] = useState<PreviewSlide[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [presentationId, setPresentationId] = useState<string | null>(null)
@@ -73,7 +85,7 @@ export default function PreviewPage() {
           throw new Error('Formato de dados inválido')
         }
 
-        setSlides(data.slides.map((slide: any) => ({
+        setSlides(data.slides.map((slide: APISlide): PreviewSlide => ({
           id: slide.id,
           image: slide.thumbnail,
           contentUrl: slide.contentUrl

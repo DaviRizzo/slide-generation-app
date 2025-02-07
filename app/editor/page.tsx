@@ -3,10 +3,7 @@
 import { useAuth } from "@clerk/nextjs";
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { PageElement, TemplateSlide } from "@/lib/types"
-import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { Loader2 } from "@/components/ui/loader2"

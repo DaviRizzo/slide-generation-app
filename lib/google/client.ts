@@ -21,8 +21,6 @@ interface ServiceAccountCredentials {
 // Usar tipos da API do Google Slides
 type TextStyle = slides_v1.Schema$TextStyle;
 type TextElement = slides_v1.Schema$TextElement;
-type TextRun = slides_v1.Schema$TextRun;
-type Shape = slides_v1.Schema$Shape;
 type PageElement = slides_v1.Schema$PageElement;
 
 // Classe para gerenciar a autenticação e os clientes do Google
