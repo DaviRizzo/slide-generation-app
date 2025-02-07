@@ -60,6 +60,15 @@ export async function POST(request: NextRequest) {
 
     console.log('[POST /api/presentations] Apresentação criada:', newPresentation);
 
+    // Verificar se o ID da apresentação foi gerado
+    if (!newPresentation.presentationId) {
+      console.error('[POST /api/presentations] Falha ao criar apresentação: ID não gerado');
+      return NextResponse.json(
+        { error: 'Falha ao criar apresentação: ID não gerado' },
+        { status: 500 }
+      );
+    }
+
     // Se houver prompt e temas, gerar e substituir texto nos slides
     if (prompt && slideThemes) {
       console.log('[POST /api/presentations] Gerando texto para os slides...');

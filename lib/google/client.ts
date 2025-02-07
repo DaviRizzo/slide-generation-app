@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
 import { generateSlideContent } from '../openai/client';
+import { slides_v1 } from 'googleapis';
 
 // Interface para as credenciais da conta de serviço
 interface ServiceAccountCredentials {
@@ -17,51 +18,12 @@ interface ServiceAccountCredentials {
   universe_domain: string;
 }
 
-// Interfaces para elementos do Google Slides
-interface TextStyle {
-  foregroundColor?: {
-    opaqueColor?: {
-      rgbColor?: {
-        red?: number;
-        green?: number;
-        blue?: number;
-      };
-    };
-  };
-  bold?: boolean;
-  italic?: boolean;
-  fontSize?: {
-    magnitude?: number;
-    unit?: string;
-  };
-  fontFamily?: string;
-}
-
-interface TextRun {
-  content?: string;
-  style?: TextStyle;
-}
-
-interface TextElement {
-  textRun?: TextRun;
-}
-
-interface ShapeText {
-  textElements?: TextElement[];
-}
-
-interface Shape {
-  text?: ShapeText;
-  placeholder?: {
-    type?: string;
-  };
-  shapeType?: string;
-}
-
-interface PageElement {
-  objectId?: string;
-  shape?: Shape;
-}
+// Usar tipos da API do Google Slides
+type TextStyle = slides_v1.Schema$TextStyle;
+type TextElement = slides_v1.Schema$TextElement;
+type TextRun = slides_v1.Schema$TextRun;
+type Shape = slides_v1.Schema$Shape;
+type PageElement = slides_v1.Schema$PageElement;
 
 // Classe para gerenciar a autenticação e os clientes do Google
 class GoogleAPIClient {
@@ -185,7 +147,7 @@ class GoogleAPIClient {
       const firstSlide = presentation.slides[0];
       const response = await this.slidesClient.presentations.pages.getThumbnail({
         presentationId,
-        pageObjectId: firstSlide.objectId,
+        pageObjectId: firstSlide.objectId!
       });
 
       return response.data.contentUrl;
@@ -245,7 +207,7 @@ class GoogleAPIClient {
 
       // 3. Busca os slides da nova apresentação
       const presentation = await this.slidesClient.presentations.get({
-        presentationId: newPresentationId,
+        presentationId: newPresentationId!,
       });
 
       const slides = presentation.data.slides || [];
@@ -283,7 +245,7 @@ class GoogleAPIClient {
       // 6. Aplica as alterações se houver
       if (deleteRequests.length > 0 || updateRequests.length > 0) {
         await this.slidesClient.presentations.batchUpdate({
-          presentationId: newPresentationId,
+          presentationId: newPresentationId!,
           requestBody: {
             requests: [...deleteRequests, ...updateRequests],
           },
@@ -292,7 +254,7 @@ class GoogleAPIClient {
 
       // 7. Retorna os detalhes da nova apresentação
       const driveFile = await this.driveClient.files.get({
-        fileId: newPresentationId,
+        fileId: newPresentationId!,
         fields: 'id, name, webViewLink',
       });
 
@@ -313,14 +275,18 @@ class GoogleAPIClient {
     if (element.shape?.text?.textElements) {
       // Pega o estilo do primeiro textRun que tiver
       const textRun = element.shape.text.textElements.find((te: TextElement) => te.textRun);
-      if (textRun?.textRun?.style) {
-        return {
-          ...textRun.textRun.style,
-          // Remover campos que não queremos copiar
-          content: undefined,
-          textIndex: undefined
-        };
-      }
+      // Retorna o style diretamente, que já está tipado como TextStyle
+      return textRun?.textRun?.style || null;
+    }
+    return null;
+  }
+
+  // Método auxiliar para extrair texto de um elemento
+  private getElementText(element: PageElement): string | null {
+    if (element.shape?.text?.textElements) {
+      return element.shape.text.textElements
+        .map(te => te.textRun?.content || '')
+        .join('');
     }
     return null;
   }
@@ -369,7 +335,7 @@ class GoogleAPIClient {
             console.log(`[replaceTextPlaceholders] Elemento ${element.objectId}: é placeholder? ${isTextPlaceholder}`, {
               shapeType: element.shape?.shapeType,
               placeholderType: element.shape?.placeholder?.type,
-              hasText: element.shape?.text?.textElements?.length > 0
+              hasText: ((element.shape?.text?.textElements?.length) ?? 0) > 0
             });
 
             return isTextPlaceholder;
@@ -445,15 +411,23 @@ class GoogleAPIClient {
           return requests;
         }).filter(Boolean).flat();
 
-        // Aplicar as alterações
-        if (requests.length > 0) {
-          console.log(`[replaceTextPlaceholders] Aplicando ${requests.length} alterações no slide ${slideIndex}`);
-          await this.slidesClient.presentations.batchUpdate({
+        // Remove elementos nulos e garante o tipo correto usando NonNullable
+        const validRequests = requests.filter(
+          (req): req is NonNullable<typeof req> => req != null
+        ) as slides_v1.Schema$Request[];
+
+        // Aplicar as alterações apenas se houver requests válidos
+        if (validRequests.length > 0) {
+          console.log(`[replaceTextPlaceholders] Aplicando ${validRequests.length} alterações no slide ${slideIndex}`);
+          
+          const batchUpdateRequest: slides_v1.Params$Resource$Presentations$Batchupdate = {
             presentationId,
             requestBody: {
-              requests
+              requests: validRequests
             }
-          });
+          };
+
+          await this.slidesClient.presentations.batchUpdate(batchUpdateRequest);
           console.log(`[replaceTextPlaceholders] Alterações aplicadas no slide ${slideIndex}`);
         }
       }
@@ -461,17 +435,6 @@ class GoogleAPIClient {
       console.error('[replaceTextPlaceholders] Erro ao substituir placeholders:', error);
       throw error;
     }
-  }
-
-  // Método auxiliar para extrair texto de um elemento
-  private getElementText(element: PageElement): string | null {
-    if (element.shape?.text?.textElements) {
-      return element.shape.text.textElements
-        .map((textElement: TextElement) => textElement.textRun?.content || '')
-        .join('')
-        .trim();
-    }
-    return null;
   }
 
   // Getter para o cliente do Drive

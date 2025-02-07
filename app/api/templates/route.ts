@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { googleAPIClient } from '@/lib/google/client';
+import { drive_v3 } from 'googleapis';
 
 // Interface para os arquivos do Drive
 interface DriveFile {
@@ -17,6 +18,22 @@ interface APIResponse {
     images: DriveFile[];
   };
   totalCount: number;
+}
+
+// Função auxiliar para transformar Schema$File em DriveFile
+function toDriveFile(file: drive_v3.Schema$File): DriveFile | null {
+  if (!file.id || !file.name || !file.mimeType) {
+    console.warn('[toDriveFile] Arquivo com dados incompletos:', file);
+    return null;
+  }
+
+  return {
+    id: file.id,
+    name: file.name,
+    mimeType: file.mimeType,
+    thumbnailLink: file.thumbnailLink || undefined,
+    webViewLink: file.webViewLink || undefined,
+  };
 }
 
 export async function GET(): Promise<NextResponse<APIResponse | { error: string, details?: string, code?: string }>> {
@@ -48,17 +65,27 @@ export async function GET(): Promise<NextResponse<APIResponse | { error: string,
       });
     }
 
-    // Separa apresentações e imagens
-    const presentations = files.filter(
-      file => file.mimeType === 'application/vnd.google-apps.presentation'
-    );
-    const images = files.filter(
-      file => file.mimeType === 'image/png' || file.mimeType === 'image/jpeg'
-    );
+    // Filtra e converte as apresentações
+    const presentations = files
+      .filter(file => file.mimeType === 'application/vnd.google-apps.presentation')
+      .map(toDriveFile)
+      .filter((file): file is DriveFile => file !== null);
+
+    // Filtra e converte as imagens
+    const images = files
+      .filter(file => file.mimeType === 'image/png' || file.mimeType === 'image/jpeg')
+      .map(toDriveFile)
+      .filter((file): file is DriveFile => file !== null);
 
     // Busca thumbnails de alta qualidade para cada apresentação
     const presentationsWithHighQualityThumbnails = await Promise.all(
       presentations.map(async (presentation) => {
+        // Verifica se o ID da apresentação existe
+        if (!presentation.id) {
+          console.warn('[GET /api/templates] Apresentação sem ID:', presentation);
+          return presentation;
+        }
+
         const highQualityThumbnail = await googleAPIClient.getFirstSlideThumbnail(presentation.id);
         return {
           ...presentation,

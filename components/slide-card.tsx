@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { UniqueIdentifier } from "@dnd-kit/core"
 import Image from "next/image"
 
 interface SlideCardProps {
-  id: number
+  id: UniqueIdentifier
   image: string
   isActive: boolean
   onToggleActive: () => void
@@ -58,4 +59,3 @@ export function SlideCard({ id, image, isActive, onToggleActive, theme, onThemeC
     </Card>
   )
 }
-

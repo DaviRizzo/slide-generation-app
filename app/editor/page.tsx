@@ -19,13 +19,15 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  DragEndEvent,
+  UniqueIdentifier,
   useSensor,
   useSensors,
 } from "@dnd-kit/core"
 import { arrayMove, SortableContext, rectSortingStrategy } from "@dnd-kit/sortable"
 
 interface Slide {
-  id: number
+  id: UniqueIdentifier
   image: string
   isActive: boolean
   theme: string
@@ -48,11 +50,6 @@ interface TemplateSlide {
   title: string
   thumbnail: string
   pageElements: PageElement[]
-}
-
-interface DragEndEvent {
-  active: { id: number };
-  over?: { id: number };
 }
 
 export default function EditorPage() {
@@ -135,7 +132,12 @@ export default function EditorPage() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
 
-    if (active.id !== over?.id) {
+    // Retorna se "over" for undefined
+    if (!over) {
+    return;
+}
+
+    if (active.id !== over.id) {
       setSlides((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id)
         const newIndex = items.findIndex((item) => item.id === over.id)
@@ -145,11 +147,11 @@ export default function EditorPage() {
     }
   }
 
-  const toggleSlideActive = (id: number) => {
+  const toggleSlideActive = (id: UniqueIdentifier) => {
     setSlides((prev) => prev.map((slide) => (slide.id === id ? { ...slide, isActive: !slide.isActive } : slide)))
   }
 
-  const updateSlideTheme = (id: number, theme: string) => {
+  const updateSlideTheme = (id: UniqueIdentifier, theme: string) => {
     setSlides((prev) => prev.map((slide) => (slide.id === id ? { ...slide, theme } : slide)))
   }
 
