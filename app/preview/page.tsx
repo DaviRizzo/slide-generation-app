@@ -3,7 +3,7 @@
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { ChevronLeft, ChevronRight, Home, Maximize2, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Home, Maximize2, X } from "@/components/ui/icons"
 import Image from "next/image"
 import Link from "next/link"
 import { useState, useRef, useCallback, useEffect } from "react"

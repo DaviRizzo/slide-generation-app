@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
-import { Plus } from "lucide-react"
+import { Plus } from "@/components/ui/icons"
 import Link from "next/link"
 import { DriveFile, TemplatesResponse } from "@/types/google"
 import { Skeleton } from "@/components/ui/skeleton"

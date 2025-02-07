@@ -2,7 +2,7 @@
 
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft } from "@/components/ui/icons"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { PresentationGrid } from "@/components/presentation-grid"

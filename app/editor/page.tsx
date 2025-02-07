@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { Loader2 } from "@/components/ui/loader2"
 import { SlideCard } from "@/components/slide-card"
-import { Zap, ArrowLeft } from "lucide-react"
+import { Zap, ArrowLeft } from "@/components/ui/icons"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
@@ -28,25 +28,6 @@ interface Slide {
   image: string
   isActive: boolean
   theme: string
-}
-
-interface PageElement {
-  objectId: string;
-  title?: string;
-  description?: string;
-  shape?: {
-    placeholder?: {
-      type: string;
-      index: number;
-    };
-  };
-}
-
-interface TemplateSlide {
-  id: string
-  title: string
-  thumbnail: string
-  pageElements: PageElement[]
 }
 
 export default function EditorPage() {

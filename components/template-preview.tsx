@@ -1,9 +1,9 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { ChevronLeft, ChevronRight, X } from "@/components/ui/icons"
 import { Card } from "@/components/ui/card"
-import { ChevronLeft, ChevronRight, X } from "lucide-react"
 import Image from "next/image"
 import { useState, useEffect, useCallback } from "react"
 import { DriveFile } from "@/types/google"

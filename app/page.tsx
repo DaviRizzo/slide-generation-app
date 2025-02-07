@@ -3,7 +3,7 @@
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { GraduationCap, Users, Presentation, FileText, BarChart } from "lucide-react"
+import { GraduationCap, Users, Presentation, FileText, BarChart } from "@/components/ui/icons"
 import Link from "next/link"
 import { UserButton, useAuth } from "@clerk/nextjs"
 import {
