@@ -29,13 +29,16 @@ interface GooglePresentation {
   slides?: GoogleSlide[];
 }
 
+interface Context {
+  params: Promise<{ id: string }>;
+}
+
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: Context
 ) {
   try {
-    // Usando context.params em vez de params diretamente
-    const presentationId = context.params.id;
+    const { id: presentationId } = await context.params;
 
     if (!presentationId) {
       return NextResponse.json(

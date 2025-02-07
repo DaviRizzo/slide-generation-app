@@ -6,12 +6,16 @@ interface GoogleSlideThumbnail {
   thumbnailUrl: string | null | undefined;
 }
 
+interface Context {
+  params: Promise<{ id: string }>;
+}
+
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: Context
 ) {
   try {
-    const { id } = context.params;
+    const { id } = await context.params;
 
     if (!id) {
       return NextResponse.json(
