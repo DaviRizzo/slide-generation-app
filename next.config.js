@@ -1,12 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack(config) {
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: require.resolve('crypto-browserify'),
+        stream: require.resolve('stream-browserify'),
+        util: require.resolve('util/'),
+      };
+    }
     config.module.rules.push({
       test: /\.svg$/,
       use: ['@svgr/webpack']
     });
 
     return config;
+  },
+  serverExternalPackages: ['@google-cloud/local-auth', 'google-auth-library'],
+  experimental: {
   },
   images: {
     remotePatterns: [
