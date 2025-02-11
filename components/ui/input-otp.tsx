@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { OTPInput, OTPInputContext, SlotProps } from "input-otp"
+import { OTPInput, OTPInputContext } from "input-otp"
 import { Minus } from "@/components/ui/icons"
 
 import { cn } from "@/lib/utils"

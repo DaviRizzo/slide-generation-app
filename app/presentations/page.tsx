@@ -1,3 +1,7 @@
+"use client"
+
+export const dynamic = 'force-dynamic';
+
 import { Layout } from "@/components/layout"
 import { PresentationGrid } from "@/components/presentation-grid"
 import Link from "next/link"
@@ -26,4 +30,3 @@ export default function PresentationsPage() {
     </Layout>
   )
 }
-

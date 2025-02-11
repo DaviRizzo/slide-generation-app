@@ -1,9 +1,12 @@
 "use client"
 
+export const dynamic = 'force-dynamic';
+
+import { Suspense } from 'react';
 import { useAuth } from "@clerk/nextjs";
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
-import { PageElement, TemplateSlide } from "@/lib/types"
+import { TemplateSlide } from "@/lib/types"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { Loader2 } from "@/components/ui/loader2"
@@ -11,9 +14,10 @@ import { SlideCard } from "@/components/slide-card"
 import { Zap, ArrowLeft } from "@/components/ui/icons"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+
 import Link from "next/link"
 import {
-  DndContext,
+  DndContext, 
   closestCenter,
   PointerSensor,
   DragEndEvent,
@@ -30,74 +34,67 @@ interface Slide {
   theme: string
 }
 
-export default function EditorPage() {
+function EditorPageContent() {
   const { isLoaded, userId } = useAuth();
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [slides, setSlides] = useState<Slide[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [slides, setSlides] = useState<Slide[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingThemes, setIsGeneratingThemes] = useState(false);
-  const { toast } = useToast()
+  const { toast } = useToast();
 
+  // Extrair os parâmetros uma única vez na montagem do componente
+  const templateParam = searchParams.get("template");
+  const promptParam = searchParams.get("prompt");
+
+  // Inicializar slides apenas uma vez na montagem do componente
   useEffect(() => {
-    let isMounted = true
-    const fetchTemplateSlides = async () => {
+    const initializeSlides = async () => {
+      if (slides.length > 0) return; // Se já tem slides, não inicializa novamente
+
       try {
-        const templateParam = searchParams.get("template")
         if (!templateParam) {
-          if (isMounted) {
-            setSlides(Array.from({ length: 8 }, (_, i) => ({
-              id: i + 1,
-              image: "/placeholder.svg",
-              isActive: true,
-              theme: "",
-            })))
-            setIsLoading(false)
-          }
-          return
-        }
-
-        const template = JSON.parse(decodeURIComponent(templateParam))
-        const response = await fetch(`/api/templates/${template.id}`)
-        
-        if (!response.ok) {
-          throw new Error('Falha ao carregar os slides do template')
-        }
-
-        const data = await response.json()
-        
-        if (isMounted) {
-          setSlides(data.slides.map((slide: TemplateSlide, index: number) => ({
-            id: index + 1,
-            image: slide.thumbnail || "/placeholder.svg",
-            isActive: true,
-            theme: "",
-          })))
-        }
-      } catch (error) {
-        console.error('Erro ao carregar template:', error)
-        if (isMounted) {
           setSlides(Array.from({ length: 8 }, (_, i) => ({
             id: i + 1,
             image: "/placeholder.svg",
             isActive: true,
             theme: "",
-          })))
+          })));
+          setIsLoading(false);
+          return;
         }
+
+        const template = JSON.parse(decodeURIComponent(templateParam));
+        const response = await fetch(`/api/templates/${template.id}`);
+        
+        if (!response.ok) {
+          throw new Error('Falha ao carregar os slides do template');
+        }
+
+        const data = await response.json();
+        
+        setSlides(data.slides.map((slide: TemplateSlide, index: number) => ({
+          id: index + 1,
+          image: slide.thumbnail || "/placeholder.svg",
+          isActive: true,
+          theme: "",
+        })));
+      } catch (error) {
+        console.error('Erro ao carregar template:', error);
+        setSlides(Array.from({ length: 8 }, (_, i) => ({
+          id: i + 1,
+          image: "/placeholder.svg",
+          isActive: true,
+          theme: "",
+        })));
       } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchTemplateSlides()
-
-    return () => {
-      isMounted = false
-    }
-  }, [searchParams])
+    initializeSlides();
+  }, []); // Array de dependências vazio para executar apenas na montagem
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -137,8 +134,7 @@ export default function EditorPage() {
     try {
       setIsGenerating(true);
 
-      const templateId = searchParams.get("template");
-      if (!templateId) {
+      if (!templateParam) {
         toast({
           title: "Erro ao gerar apresentação",
           description: "Template não encontrado.",
@@ -147,11 +143,9 @@ export default function EditorPage() {
         return;
       }
 
-      // Parse o template para obter o ID
-      const template = JSON.parse(decodeURIComponent(templateId));
+      const template = JSON.parse(decodeURIComponent(templateParam));
 
-      const prompt = searchParams.get("prompt");
-      if (!prompt) {
+      if (!promptParam) {
         toast({
           title: "Erro ao gerar apresentação",
           description: "Prompt não encontrado.",
@@ -163,7 +157,7 @@ export default function EditorPage() {
       // Filtra apenas os slides ativos e mantém a ordem atual
       const activeSlides = slides
         .filter(item => item.isActive)
-        .map(item => item.id); // Mantemos o número do slide (1-based)
+        .map(item => item.id);
 
       if (activeSlides.length === 0) {
         toast({
@@ -182,14 +176,6 @@ export default function EditorPage() {
           [index.toString()]: item.theme
         }), {});
 
-      console.log('Enviando requisição com:', {
-        templateId: template.id,
-        activeSlides,
-        prompt,
-        slideThemes
-      });
-
-      // Faz a requisição para a API
       const response = await fetch('/api/presentations', {
         method: 'POST',
         headers: {
@@ -198,10 +184,10 @@ export default function EditorPage() {
         body: JSON.stringify({
           templateId: template.id,
           activeSlides,
-          prompt,
+          prompt: promptParam,
           slideThemes,
           metadata: {
-            originalTemplate: templateId,
+            originalTemplate: templateParam,
             generatedAt: new Date().toISOString(),
           },
         }),
@@ -237,11 +223,13 @@ export default function EditorPage() {
   const handleGenerateThemes = async () => {
     try {
       setIsGeneratingThemes(true);
-      const selectedSlides = slides
+      
+      // Mantém apenas os slides atualmente ativos e sua ordem atual
+      const activeSlides = slides
         .filter(slide => slide.isActive)
         .map(slide => slide.id);
 
-      if (selectedSlides.length === 0) {
+      if (activeSlides.length === 0) {
         toast({
           title: "Erro ao gerar temas",
           description: "Selecione pelo menos um slide para gerar temas.",
@@ -250,8 +238,7 @@ export default function EditorPage() {
         return;
       }
 
-      const prompt = searchParams.get("prompt");
-      if (!prompt) {
+      if (!promptParam) {
         toast({
           title: "Erro ao gerar temas",
           description: "Prompt não encontrado.",
@@ -260,7 +247,6 @@ export default function EditorPage() {
         return;
       }
 
-      // Mostra toast de carregamento
       toast({
         title: "Gerando temas...",
         description: "Aguarde enquanto a IA gera os temas para os slides selecionados.",
@@ -272,8 +258,8 @@ export default function EditorPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt,
-          selectedSlides,
+          prompt: promptParam,
+          selectedSlides: activeSlides,
         }),
       });
 
@@ -287,20 +273,16 @@ export default function EditorPage() {
         throw new Error('Formato de resposta inválido');
       }
 
-      // Atualiza os temas dos slides selecionados
+      // Atualiza apenas os temas dos slides ativos, mantendo a ordem e seleção atual
       let themeIndex = 0;
-      const activeSlides = slides.filter(slide => slide.isActive).length;
-      
-      if (data.themes.length < activeSlides) {
-        throw new Error('Número insuficiente de temas gerados');
-      }
-
-      setSlides(prev => prev.map(slide => {
-        if (slide.isActive && themeIndex < data.themes.length) {
-          return { ...slide, theme: data.themes[themeIndex++] };
-        }
-        return slide;
-      }));
+      setSlides(prev => 
+        prev.map(slide => {
+          if (slide.isActive && themeIndex < data.themes.length) {
+            return { ...slide, theme: data.themes[themeIndex++] };
+          }
+          return slide;
+        })
+      );
 
       toast({
         title: "Temas gerados com sucesso!",
@@ -336,13 +318,14 @@ export default function EditorPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" asChild>
+            <Button type="button" variant="ghost" size="sm" asChild>
               <Link href="/templates" className="flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
                 Voltar
               </Link>
             </Button>
             <Button 
+              type="button"
               variant="outline" 
               className="gap-2" 
               onClick={handleGenerateThemes}
@@ -365,6 +348,7 @@ export default function EditorPage() {
           <h1 className="text-2xl font-bold text-center flex-1">Defina os temas e ordem de cada Slide</h1>
 
           <Button
+            type="button"
             onClick={handleGeneratePresentation}
             disabled={isGenerating}
             className="w-[200px]"
@@ -402,5 +386,13 @@ export default function EditorPage() {
       </div>
       <Toaster />
     </Layout>
-  )
+  );
+}
+
+export default function EditorPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <EditorPageContent />
+    </Suspense>
+  );
 }

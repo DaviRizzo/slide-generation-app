@@ -1,4 +1,4 @@
-import { Loader2 as LoaderIcon } from "lucide-react"
+import { Loader2 as LoaderIcon } from "@/components/ui/icons"
 import { cn } from "@/lib/utils"
 
 export function Loader2({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

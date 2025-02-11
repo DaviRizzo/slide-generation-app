@@ -1,5 +1,8 @@
 "use client"
 
+export const dynamic = 'force-dynamic';
+
+import { Suspense } from "react"
 import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "@/components/ui/icons"
@@ -8,7 +11,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { PresentationGrid } from "@/components/presentation-grid"
 import { DriveFile } from "@/types/google"
 
-export default function TemplatesPage() {
+// Componente interno que usa o hook useSearchParams()
+function TemplatesPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const prompt = searchParams.get("prompt")
@@ -67,5 +71,14 @@ export default function TemplatesPage() {
         </div>
       </div>
     </Layout>
+  )
+}
+
+// Componente default que envolve o conteúdo com Suspense
+export default function TemplatesPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <TemplatesPageContent />
+    </Suspense>
   )
 }

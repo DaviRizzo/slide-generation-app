@@ -8,6 +8,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { useState, useRef, useCallback, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
+
 
 interface APISlide {
   id: number;
@@ -21,34 +23,7 @@ interface PreviewSlide {
   contentUrl: string;
 }
 
-const platforms = [
-  { 
-    name: "Google Slides", 
-    icon: "/logos/google_slides.svg", 
-    color: "transparent",
-    action: (id: string) => window.open(`https://docs.google.com/presentation/d/${id}/edit`, '_blank')
-  },
-  { 
-    name: "Canva", 
-    icon: "/logos/canva.svg", 
-    color: "transparent",
-    action: () => {} // Implementação futura
-  },
-  { 
-    name: "PowerPoint", 
-    icon: "/logos/powerpoint.svg", 
-    color: "transparent",
-    action: (id: string) => window.open(`https://docs.google.com/presentation/d/${id}/export/pptx`, '_blank')
-  },
-  { 
-    name: "Download", 
-    icon: "/placeholder.svg", 
-    color: "bg-black",
-    action: () => {} // Implementação futura
-  },
-]
-
-export default function PreviewPage() {
+function PreviewPageContent() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showExitButton, setShowExitButton] = useState(false)
@@ -65,7 +40,7 @@ export default function PreviewPage() {
       try {
         setError(null)
         setIsLoading(true)
-        
+
         const id = searchParams.get('presentationId')
         if (!id) {
           setError('ID da apresentação não fornecido')
@@ -276,9 +251,8 @@ export default function PreviewPage() {
                   <button
                     key={slide.id}
                     onClick={() => setCurrentSlide(index)}
-                    className={`flex-shrink-0 relative rounded-lg overflow-hidden border-2 ${
-                      currentSlide === index ? "border-primary" : "border-transparent"
-                    }`}
+                    className={`flex-shrink-0 relative rounded-lg overflow-hidden border-2 ${currentSlide === index ? "border-primary" : "border-transparent"
+                      }`}
                   >
                     <Image
                       src={slide.image || "/placeholder.svg"}
@@ -295,5 +269,48 @@ export default function PreviewPage() {
         </div>
       </div>
     </Layout>
-  )
+  );
+}
+
+const platforms = [
+  {
+    name: "Google Slides",
+    icon: "/logos/google_slides.svg",
+    color: "transparent",
+    action: (id: string) => {
+      if (typeof window !== "undefined") {
+        window.open(`https://docs.google.com/presentation/d/${id}/edit`, '_blank');
+      }
+    }
+  },
+  {
+    name: "Canva",
+    icon: "/logos/canva.svg",
+    color: "transparent",
+    action: () => { } // Implementação futura
+  },
+  {
+    name: "PowerPoint",
+    icon: "/logos/powerpoint.svg",
+    color: "transparent",
+    action: (id: string) => {
+      if (typeof window !== "undefined") {
+        window.open(`https://docs.google.com/presentation/d/${id}/export/pptx`, '_blank');
+      }
+    }
+  },
+  {
+    name: "Download",
+    icon: "/placeholder.svg",
+    color: "bg-black",
+    action: () => { } // Implementação futura
+  },
+];
+
+export default function PreviewPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <PreviewPageContent />
+    </Suspense>
+  );
 }
